@@ -8,6 +8,7 @@ It's provided here as is for other people's inspiration.
 <img width="1143" height="867" alt="image" src="https://github.com/user-attachments/assets/7ffcede6-00f6-41a7-81fc-8cbb689add9d" />
 <img width="1263" height="1307" alt="image" src="https://github.com/user-attachments/assets/27d7e0d4-2804-4a21-9d1e-3be65cdb17d7" />
 </div>
+
 # How it works
 In a bit more detail, here is what happens when you submit a query:
 
