@@ -198,14 +198,60 @@ const App: React.FC = () => {
       </header>
 
       {/* Messages Area */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scroll-smooth">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-60">
-             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-               <Icon name="bot" className="w-8 h-8 text-indigo-500" />
+          <div className="h-full flex flex-col items-center justify-center p-8">
+             <div className="max-w-3xl w-full space-y-8">
+                {/* Header */}
+                <div className="text-center space-y-4">
+                     <div className="w-20 h-20 bg-gray-800 rounded-2xl mx-auto flex items-center justify-center shadow-xl border border-gray-700">
+                       <Icon name="bot" className="w-10 h-10 text-indigo-500" />
+                     </div>
+                     <h2 className="text-3xl font-bold text-gray-100">The LLM Council</h2>
+                     <p className="text-gray-400 max-w-lg mx-auto">
+                        Your query is debated by a diverse council of AI personas before a final verdict is reached.
+                     </p>
+                </div>
+
+                {/* The Chairman Card */}
+                <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        <Icon name="sparkles" className="w-5 h-5 text-indigo-400" />
+                        The Chairman
+                    </h3>
+                    <p className="text-gray-400">
+                        Presides over the council. Reviews all opinions and critiques to synthesize a final, balanced, and authoritative answer.
+                    </p>
+                </div>
+
+                {/* Members Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Analyst */}
+                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
+                        <h4 className="font-bold text-blue-400 mb-1 group-hover:text-blue-300 transition-colors">The Analyst</h4>
+                        <p className="text-sm text-gray-400">Analytical, data-driven, and precise.</p>
+                    </div>
+
+                    {/* Visionary */}
+                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
+                        <h4 className="font-bold text-purple-400 mb-1 group-hover:text-purple-300 transition-colors">The Visionary</h4>
+                        <p className="text-sm text-gray-400">Creative, abstract, and out-of-the-box.</p>
+                    </div>
+
+                    {/* Skeptic */}
+                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
+                        <h4 className="font-bold text-orange-400 mb-1 group-hover:text-orange-300 transition-colors">The Skeptic</h4>
+                        <p className="text-sm text-gray-400">Critical, cautious, and risk-aware.</p>
+                    </div>
+
+                    {/* Pragmatist */}
+                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
+                        <h4 className="font-bold text-green-400 mb-1 group-hover:text-green-300 transition-colors">The Pragmatist</h4>
+                        <p className="text-sm text-gray-400">Practical, realistic, and solution-oriented.</p>
+                    </div>
+                </div>
              </div>
-             <p className="text-lg">The Council is ready to deliberate.</p>
-             <p className="text-sm mt-2">Ask a complex question or upload a document to start the debate.</p>
           </div>
         )}
 
