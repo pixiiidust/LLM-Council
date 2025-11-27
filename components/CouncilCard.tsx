@@ -9,7 +9,7 @@ interface CouncilCardProps {
 
 const Markdown: React.FC<{ content: string }> = ({ content }) => {
   return (
-    <div className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap leading-relaxed">
+    <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap leading-relaxed font-mono text-cyber-text">
       {content}
     </div>
   );
@@ -26,21 +26,21 @@ export const CouncilCard: React.FC<CouncilCardProps> = ({ data }) => {
     const currentIdx = stages.indexOf(data.stage);
     const targetIdx = stages.indexOf(targetStage);
 
-    if (currentIdx > targetIdx) return <Icon name="check" className="w-4 h-4 text-green-400" />;
-    if (currentIdx === targetIdx) return <Icon name="clock" className="w-4 h-4 text-blue-400 animate-spin" />;
-    return <div className="w-4 h-4 rounded-full border border-gray-600" />;
+    if (currentIdx > targetIdx) return <span className="text-cyber-secondary">[DONE]</span>;
+    if (currentIdx === targetIdx) return <span className="text-cyber-primary animate-pulse">[BUSY]</span>;
+    return <span className="text-cyber-muted opacity-30">[WAIT]</span>;
   };
 
   const getActiveContent = () => {
-    if (activeTab === 'final') return data.chairmanResponse || "Waiting for the Chairman's verdict...";
+    if (activeTab === 'final') return data.chairmanResponse || "Awaiting Final Verdict...";
     
     // Check Reviews tab
     if (activeTab === 'reviews') {
       if (data.reviews.length === 0) return "Reviews pending...";
       return data.reviews.map(r => {
         const m = COUNCIL_MEMBERS.find(m => m.id === r.reviewerId);
-        return `**${m?.name} Review:**\n${r.content}`;
-      }).join('\n\n---\n\n');
+        return `### REVIEW: ${m?.name}\n${r.content}`;
+      }).join('\n\n***\n\n');
     }
 
     // Individual Member tabs
@@ -49,120 +49,131 @@ export const CouncilCard: React.FC<CouncilCardProps> = ({ data }) => {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-4xl mx-auto my-6 bg-gray-800 rounded-xl border border-gray-700 shadow-xl overflow-hidden">
+    <div className="flex flex-col w-full max-w-5xl mx-auto my-6 bg-cyber-black border-4 border-cyber-border shadow-[0_0_15px_rgba(74,222,128,0.1)] overflow-hidden font-mono relative">
       
+      {/* Decorative corners */}
+      <div className="absolute top-0 left-0 w-3 h-3 border-t-8 border-l-8 border-cyber-primary"></div>
+      <div className="absolute top-0 right-0 w-3 h-3 border-t-8 border-r-8 border-cyber-primary"></div>
+      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-8 border-l-8 border-cyber-primary"></div>
+      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-8 border-r-8 border-cyber-primary"></div>
+
       {/* Header / Progress Bar */}
-      <div className="bg-gray-900/50 p-4 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-           <div className="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">
-             <Icon name="bot" className="w-6 h-6" />
+      <div className="bg-cyber-dim p-4 border-b-4 border-cyber-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+           <div className="bg-cyber-primary/10 p-2 border-2 border-cyber-primary text-cyber-primary shadow-[0_0_10px_rgba(74,222,128,0.2)]">
+             <Icon name="bot" className="w-5 h-5" />
            </div>
            <div>
-             <h3 className="font-semibold text-gray-100">LLM Council</h3>
-             <span className="text-xs text-gray-400">
-               {data.stage === 'complete' ? 'Deliberation Complete' : 'Council is in session...'}
+             <h3 className="text-lg font-bold tracking-widest text-cyber-primary uppercase text-glow">/// PROTOCOL: COUNCIL_V1</h3>
+             <span className="text-xs text-cyber-secondary uppercase tracking-wider font-bold">
+               STATUS: {data.stage === 'complete' ? 'DELIBERATION_COMPLETE' : 'PROCESSING_REQUEST...'}
              </span>
            </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center gap-3 text-xs font-medium text-gray-400 bg-gray-900 rounded-lg p-2">
-          <div className={`flex items-center gap-1 ${data.stage === 'opinions' ? 'text-blue-400' : ''}`}>
+        {/* Technical Progress Steps */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-xs font-bold font-mono text-cyber-muted">
+          <div className="flex items-center gap-2">
+             <span>01 // INITIAL_OPINIONS:</span>
              <StatusIcon targetStage="opinions" />
-             <span>First Opinions</span>
           </div>
-          <div className="w-4 h-[1px] bg-gray-700"></div>
-          <div className={`flex items-center gap-1 ${data.stage === 'reviews' ? 'text-blue-400' : ''}`}>
+          <div className="flex items-center gap-2">
+             <span>02 // PEER_REVIEW:</span>
              <StatusIcon targetStage="reviews" />
-             <span>Peer Review</span>
           </div>
-          <div className="w-4 h-[1px] bg-gray-700"></div>
-          <div className={`flex items-center gap-1 ${data.stage === 'chairman' ? 'text-blue-400' : ''}`}>
+          <div className="flex items-center gap-2">
+             <span>03 // FINAL_SYNTHESIS:</span>
              <StatusIcon targetStage="chairman" />
-             <span>Chairman</span>
           </div>
         </div>
       </div>
 
-      {/* Accordion Toggle for Details */}
-      <div className="bg-gray-800 border-b border-gray-700">
+      {/* Accordion Toggle */}
+      <div className="bg-cyber-black border-b-4 border-cyber-border border-dashed">
         <button 
           onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 text-xs text-gray-500 hover:bg-gray-700/50 transition-colors uppercase tracking-wider font-semibold"
+          className="w-full flex items-center justify-between px-4 py-2 text-xs text-cyber-primary hover:bg-cyber-primary/10 transition-colors uppercase tracking-widest font-bold"
         >
-          <span>Council Proceedings</span>
+          <span>[ TOGGLE_DETAILS ]</span>
           <Icon name={isDetailsOpen ? 'chevron-up' : 'chevron-down'} className="w-4 h-4" />
         </button>
       </div>
 
       {/* Main Content Area */}
       {isDetailsOpen && (
-        <div className="flex flex-col md:flex-row h-[500px] md:h-auto min-h-[400px]">
+        <div className="flex flex-col md:flex-row h-[600px] md:h-auto min-h-[450px]">
           
           {/* Sidebar Tabs */}
-          <div className="md:w-64 bg-gray-900/30 border-r border-gray-700 flex flex-row md:flex-col overflow-x-auto md:overflow-visible">
+          <div className="md:w-64 bg-cyber-panel border-r-4 border-cyber-border flex flex-row md:flex-col overflow-x-auto md:overflow-visible scrollbar-hide">
             
             {/* Chairman Tab (Final Answer) */}
             <button
               onClick={() => setActiveTab('final')}
-              className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-sm font-medium border-l-4 transition-all
+              className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-xs font-bold border-b-2 border-cyber-border transition-all uppercase tracking-wider
                 ${activeTab === 'final' 
-                  ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' 
-                  : 'border-transparent text-gray-400 hover:bg-gray-800 hover:text-gray-200'}
+                  ? 'bg-cyber-primary/20 text-cyber-primary border-l-8 border-l-cyber-primary text-glow' 
+                  : 'text-cyber-muted hover:text-cyber-primary hover:bg-cyber-primary/5 border-l-8 border-l-transparent'}
               `}
             >
-              <div className="flex items-center gap-2">
-                <Icon name="sparkles" className="w-4 h-4" />
-                <span>Final Verdict</span>
-              </div>
+              > FINAL_VERDICT
             </button>
-            
-            <div className="h-[1px] bg-gray-700 my-1 mx-2 hidden md:block"></div>
 
             {/* Individual Members */}
+            <div className="px-4 py-2 text-[10px] text-cyber-muted uppercase tracking-widest border-b-2 border-cyber-border hidden md:block bg-cyber-black font-bold">
+              // COUNCIL_MEMBERS
+            </div>
+            
             {COUNCIL_MEMBERS.map((member) => (
               <button
                 key={member.id}
                 onClick={() => setActiveTab(member.id)}
                 disabled={data.opinions.length === 0}
-                className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-sm border-l-4 transition-all
+                className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-xs border-b-2 border-cyber-border transition-all uppercase
                   ${activeTab === member.id 
-                    ? `bg-gray-800 border-${member.color.split('-')[1]}-500 text-gray-200` 
-                    : 'border-transparent text-gray-500 hover:bg-gray-800 hover:text-gray-300'}
+                    ? `bg-white/5 ${member.color} border-l-8 border-l-current font-bold` 
+                    : 'text-cyber-muted hover:text-cyber-text hover:bg-white/5 border-l-8 border-l-transparent'}
                   ${data.opinions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
-                <div className="font-semibold">{member.name}</div>
-                <div className="text-[10px] opacity-70 truncate">{member.style}</div>
+                {member.name}
               </button>
             ))}
-
-            <div className="h-[1px] bg-gray-700 my-1 mx-2 hidden md:block"></div>
 
             {/* Reviews Tab */}
             <button
               onClick={() => setActiveTab('reviews')}
               disabled={data.reviews.length === 0}
-              className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-sm font-medium border-l-4 transition-all
+              className={`flex-shrink-0 md:w-full text-left px-4 py-3 text-xs font-bold border-b-2 border-cyber-border transition-all uppercase tracking-wider
                 ${activeTab === 'reviews' 
-                  ? 'bg-gray-800 border-yellow-500 text-yellow-500' 
-                  : 'border-transparent text-gray-400 hover:bg-gray-800 hover:text-gray-200'}
+                  ? 'bg-amber-900/20 text-amber-400 border-l-8 border-l-amber-500' 
+                  : 'text-amber-700 hover:text-amber-400 hover:bg-amber-900/10 border-l-8 border-l-transparent'}
                  ${data.reviews.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
-              Internal Reviews
+              > INTERNAL_LOGS
             </button>
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 p-6 overflow-y-auto bg-gray-800 min-h-[300px] max-h-[600px]">
+          <div className="flex-1 p-6 overflow-y-auto bg-cyber-black min-h-[300px] max-h-[600px] relative">
+            {/* Background grid for content area */}
+             <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(74,222,128,0.1)_2px,transparent_2px),linear-gradient(90deg,rgba(74,222,128,0.1)_2px,transparent_2px)] bg-[size:20px_20px]"></div>
+
             {data.error ? (
-                <div className="p-4 bg-red-900/20 border border-red-500/50 rounded text-red-200 flex items-center gap-2">
-                    <Icon name="alert" />
+                <div className="p-4 border-2 border-red-500 text-red-500 bg-red-950/30 font-mono text-sm">
+                    <div className="flex items-center gap-2 mb-2 font-bold uppercase">
+                         <Icon name="alert" />
+                         CRITICAL_ERROR
+                    </div>
                     {data.error}
                 </div>
             ) : (
-                <Markdown content={getActiveContent()} />
+                <div className="relative z-10">
+                   <div className="mb-4 text-xs text-cyber-muted uppercase tracking-widest border-b-2 border-cyber-border/50 pb-2 font-bold">
+                      Displaying: {activeTab === 'final' ? 'CHAIRMAN_SYNTHESIS' : activeTab.toUpperCase() + '_OUTPUT'}
+                   </div>
+                   <Markdown content={getActiveContent()} />
+                </div>
             )}
           </div>
         </div>

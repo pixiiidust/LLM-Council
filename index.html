@@ -3,23 +3,127 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LLM Council</title>
+    <title>LLM Council // LAB INTERFACE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['"Share Tech Mono"', 'monospace'],
+              sans: ['"Share Tech Mono"', 'monospace'],
+            },
+            colors: {
+              cyber: {
+                black: '#020502',      /* Background - Deep Black/Green */
+                dark: '#051008',       /* Secondary - Dark Green/Slate */
+                panel: '#071209',      /* Panel BG */
+                primary: '#4ade80',    /* Primary - Green 400 (Terminal Green) */
+                secondary: '#a3e635',  /* Secondary - Lime 400 */
+                text: '#dcfce7',       /* Text - Green 50 */
+                muted: '#94bba0',      /* Muted - Sage Green (Brighter/Visible) */
+                dim: 'rgba(74, 222, 128, 0.05)', /* Subtle green tint */
+                border: 'rgba(74, 222, 128, 0.8)' /* Green border (High opacity for thick lines) */
+              }
+            },
+            backgroundImage: {
+              'grid-pattern': "linear-gradient(rgba(74, 222, 128, 0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(74, 222, 128, 0.1) 2px, transparent 2px)",
+            }
+          }
+        }
+      }
+    </script>
     <style>
-      /* Custom scrollbar for a cleaner look */
+      body {
+        background-color: #020502;
+        color: #4ade80;
+        font-family: 'Share Tech Mono', monospace;
+      }
+
+      /* Custom scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 14px;
+        height: 14px;
+        background: #020502;
+        border-left: 4px solid #14532d;
       }
       ::-webkit-scrollbar-track {
-        background: #1f2937;
+        background: #020502;
       }
       ::-webkit-scrollbar-thumb {
-        background: #4b5563;
-        border-radius: 4px;
+        background: #15803d;
+        border: 4px solid #052e16;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
+        background: #4ade80;
+      }
+
+      /* CRT Scanline Effect */
+      .scanlines {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(0,0,0,0),
+          rgba(0,0,0,0) 50%,
+          rgba(0,0,0,0.2) 50%,
+          rgba(0,0,0,0.2)
+        );
+        background-size: 100% 4px;
+        pointer-events: none;
+        z-index: 50;
+        opacity: 0.6;
+      }
+
+      /* CRT Flicker */
+      @keyframes flicker {
+        0% { opacity: 0.97; }
+        5% { opacity: 0.95; }
+        10% { opacity: 0.9; }
+        15% { opacity: 0.95; }
+        20% { opacity: 0.99; }
+        25% { opacity: 0.95; }
+        30% { opacity: 0.9; }
+        35% { opacity: 0.96; }
+        40% { opacity: 0.98; }
+        45% { opacity: 0.95; }
+        50% { opacity: 0.99; }
+        55% { opacity: 0.93; }
+        60% { opacity: 0.9; }
+        65% { opacity: 0.96; }
+        70% { opacity: 1; }
+        75% { opacity: 0.97; }
+        80% { opacity: 0.95; }
+        85% { opacity: 0.92; }
+        90% { opacity: 0.98; }
+        95% { opacity: 0.99; }
+        100% { opacity: 0.94; }
+      }
+      
+      .crt-flicker {
+        animation: flicker 0.15s infinite;
+        pointer-events: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(74, 222, 128, 0.02);
+        z-index: 49;
+      }
+
+      .text-glow {
+        text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+      }
+      
+      .border-glow {
+        box-shadow: 0 0 5px rgba(74, 222, 128, 0.2), inset 0 0 5px rgba(74, 222, 128, 0.1);
       }
     </style>
   <script type="importmap">
@@ -28,12 +132,16 @@
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
 </head>
-  <body class="bg-gray-900 text-gray-100 font-sans antialiased h-screen overflow-hidden">
-    <div id="root" class="h-full flex flex-col"></div>
+  <body class="bg-cyber-black text-cyber-primary font-mono antialiased h-screen overflow-hidden selection:bg-cyber-primary selection:text-black">
+    <div class="scanlines"></div>
+    <div class="crt-flicker"></div>
+    <div id="root" class="h-full flex flex-col relative z-10"></div>
   </body>
 </html>

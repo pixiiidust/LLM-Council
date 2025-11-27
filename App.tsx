@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createRoot } from 'react-dom/client';
 import { Message, CouncilData } from './types';
 import { CouncilCard } from './components/CouncilCard';
 import { Icon } from './components/Icon';
@@ -13,6 +12,7 @@ const App: React.FC = () => {
   const [isEli5, setIsEli5] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,8 +58,24 @@ const App: React.FC = () => {
     setAttachment(null);
   };
 
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if ((!inputValue.trim() && !attachment) || isLoading) return;
+
+    // Reset previous abort controller if any
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const signal = abortController.signal;
 
     let userText = inputValue.trim();
     let displayPrompt = userText;
@@ -126,19 +142,20 @@ const App: React.FC = () => {
     try {
       // --- STAGE 1: FIRST OPINIONS ---
       updateCouncilStage(councilMsgId, 'opinions');
-      // Pass attachmentPart if it exists (for PDFs)
-      const opinions = await getInitialOpinions(userText, attachmentPart);
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const opinions = await getInitialOpinions(userText, attachmentPart, signal);
       updateCouncilData(councilMsgId, { opinions });
 
       // --- STAGE 2: PEER REVIEWS ---
       updateCouncilStage(councilMsgId, 'reviews');
-      const reviews = await getPeerReviews(userText, opinions, attachmentPart);
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const reviews = await getPeerReviews(userText, opinions, attachmentPart, signal);
       updateCouncilData(councilMsgId, { reviews });
 
       // --- STAGE 3: CHAIRMAN'S RULING ---
       updateCouncilStage(councilMsgId, 'chairman');
-      // Pass isEli5 to the Chairman
-      const finalRuling = await getChairmanRuling(userText, opinions, reviews, attachmentPart, isEli5);
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const finalRuling = await getChairmanRuling(userText, opinions, reviews, attachmentPart, isEli5, signal);
       
       // --- COMPLETE ---
       updateCouncilData(councilMsgId, { 
@@ -146,18 +163,27 @@ const App: React.FC = () => {
         stage: 'complete' 
       });
 
-    } catch (error) {
-      console.error("Council process failed:", error);
-      updateCouncilData(councilMsgId, { 
-        stage: 'complete', 
-        error: "The Council encountered a critical error during deliberation." 
-      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        updateCouncilData(councilMsgId, {
+            error: "DELIBERATION_HALTED_BY_USER",
+            stage: 'complete'
+        });
+      } else {
+        console.error("Council process failed:", error);
+        updateCouncilData(councilMsgId, { 
+            stage: 'complete', 
+            error: "CRITICAL_SYSTEM_FAILURE: DELIBERATION_ABORTED" 
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === abortController) {
+          setIsLoading(false);
+          abortControllerRef.current = null;
+      }
     }
   };
 
-  // Helper to update state deeply
   const updateCouncilData = (msgId: string, updates: Partial<CouncilData>) => {
     setMessages(prev => prev.map(msg => {
       if (msg.id === msgId && msg.councilData) {
@@ -182,73 +208,114 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-gray-100 relative">
+    <div className="flex flex-col h-full bg-cyber-black text-cyber-primary font-mono relative overflow-hidden bg-grid-pattern bg-[length:40px_40px]">
       
-      {/* Navbar */}
-      <header className="flex-none h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6 z-10">
-        <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                <Icon name="bot" className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-white">LLM Council</h1>
+      {/* Top Protocol Header */}
+      <header className="flex-none h-20 border-b-4 border-cyber-border bg-cyber-black flex items-center justify-between px-6 z-20 select-none shadow-[0_5px_20px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-6">
+             <div className="flex flex-col">
+                 <div className="text-4xl font-bold tracking-tighter text-cyber-primary text-glow leading-none">
+                    AI SYSTEMS REPORT
+                 </div>
+                 <div className="flex items-center gap-2 mt-1">
+                    <span className="w-3 h-3 bg-cyber-secondary animate-pulse"></span>
+                    <div className="text-[10px] text-cyber-secondary tracking-[0.3em] uppercase opacity-80 font-bold">
+                      Authority: Human-in-Loop
+                    </div>
+                 </div>
+             </div>
         </div>
-        <div className="text-sm text-gray-500 hidden sm:block">
-            Powered by Google Gemini 2.5 & 3.0
+        <div className="hidden sm:flex items-center">
+            <div className="bg-cyber-primary text-cyber-black px-4 py-2 font-bold text-2xl tracking-tighter border-4 border-transparent">
+                +14%
+                <span className="block text-[10px] leading-none tracking-normal font-normal">EFFICIENCY GAIN</span>
+            </div>
+            <div className="ml-4 flex flex-col items-end text-[10px] text-cyber-muted tracking-widest gap-1 font-bold">
+                <span>PROGRAM : AUXON // ANALYTICS_MODE</span>
+                <span className="text-cyber-secondary">> DATASETS INGESTED : 7,428</span>
+            </div>
         </div>
       </header>
 
-      {/* Messages Area */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scroll-smooth">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 scroll-smooth relative">
+        
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center p-8">
-             <div className="max-w-3xl w-full space-y-8">
-                {/* Header */}
-                <div className="text-center space-y-4">
-                     <div className="w-20 h-20 bg-gray-800 rounded-2xl mx-auto flex items-center justify-center shadow-xl border border-gray-700">
-                       <Icon name="bot" className="w-10 h-10 text-indigo-500" />
-                     </div>
-                     <h2 className="text-3xl font-bold text-gray-100">The LLM Council</h2>
-                     <p className="text-gray-400 max-w-lg mx-auto">
-                        Your query is debated by a diverse council of AI personas before a final verdict is reached.
-                     </p>
-                </div>
+          <div className="h-full flex flex-col items-center justify-center p-4">
+             <div className="max-w-4xl w-full border-4 border-cyber-border p-1 relative bg-cyber-black/90 shadow-[0_0_30px_rgba(74,222,128,0.1)] backdrop-blur-sm">
+                
+                {/* Decorative corners */}
+                <div className="absolute -top-1.5 -left-1.5 w-6 h-6 border-t-8 border-l-8 border-cyber-primary"></div>
+                <div className="absolute -top-1.5 -right-1.5 w-6 h-6 border-t-8 border-r-8 border-cyber-primary"></div>
+                <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 border-b-8 border-l-8 border-cyber-primary"></div>
+                <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 border-b-8 border-r-8 border-cyber-primary"></div>
 
-                {/* The Chairman Card */}
-                <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                        <Icon name="sparkles" className="w-5 h-5 text-indigo-400" />
-                        The Chairman
-                    </h3>
-                    <p className="text-gray-400">
-                        Presides over the council. Reviews all opinions and critiques to synthesize a final, balanced, and authoritative answer.
-                    </p>
-                </div>
-
-                {/* Members Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Analyst */}
-                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
-                        <h4 className="font-bold text-blue-400 mb-1 group-hover:text-blue-300 transition-colors">The Analyst</h4>
-                        <p className="text-sm text-gray-400">Analytical, data-driven, and precise.</p>
+                <div className="p-8 border-4 border-cyber-border/30 border-dashed">
+                    {/* Hero Section */}
+                    <div className="flex flex-col md:flex-row gap-8 items-start mb-12">
+                        <div className="flex-1 space-y-4">
+                             <div className="inline-block px-3 py-1 bg-cyber-primary/10 text-cyber-primary text-xs font-bold uppercase tracking-wider mb-2 border-2 border-cyber-primary">
+                                [ INSIGHT SUMMARY ]
+                             </div>
+                             <h2 className="text-4xl md:text-5xl font-bold text-cyber-text tracking-tighter text-glow">
+                                COUNCIL_OF_5
+                             </h2>
+                             <p className="text-cyber-muted text-sm leading-relaxed border-l-4 border-cyber-primary pl-4 font-bold">
+                                > Autonomous multi-agent deliberation protocols active.<br/>
+                                > Synthesis engine ready to process complex queries through adversarial review.
+                             </p>
+                        </div>
+                        
+                        {/* Chairman Box */}
+                        <div className="w-full md:w-64 border-4 border-cyber-border bg-cyber-dim p-4 relative">
+                            <div className="absolute top-0 right-0 bg-cyber-primary text-cyber-black text-[10px] px-2 py-0.5 font-bold">CORE_CPU</div>
+                            <h3 className="text-xl font-bold text-cyber-primary mb-2 flex items-center gap-2">
+                                <Icon name="sparkles" className="w-5 h-5 text-cyber-primary" />
+                                THE_CHAIRMAN
+                            </h3>
+                            <p className="text-xs text-cyber-muted font-bold">
+                                Synthesizes data. Resolves conflicts. Outputs final directive.
+                            </p>
+                            
+                            {/* Animated Loading Bar */}
+                            <div className="mt-4 h-3 w-full bg-cyber-black border-2 border-cyber-border/50 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-cyber-primary/50 w-2/3 animate-[shimmer_2s_infinite_linear]"></div>
+                                <div className="absolute inset-0 flex justify-between">
+                                    <div className="w-[2px] h-full bg-cyber-black"></div>
+                                    <div className="w-[2px] h-full bg-cyber-black"></div>
+                                    <div className="w-[2px] h-full bg-cyber-black"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Visionary */}
-                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
-                        <h4 className="font-bold text-purple-400 mb-1 group-hover:text-purple-300 transition-colors">The Visionary</h4>
-                        <p className="text-sm text-gray-400">Creative, abstract, and out-of-the-box.</p>
+                    {/* Grid of Members */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                            { title: 'THE ANALYST', desc: 'Logic / Data / Precision', color: 'text-lime-400', border: 'border-lime-400/30' },
+                            { title: 'THE VISIONARY', desc: 'Abstract / Creative / What-If', color: 'text-fuchsia-400', border: 'border-fuchsia-400/30' },
+                            { title: 'THE SKEPTIC', desc: 'Critical / Risk / Edge-Cases', color: 'text-amber-400', border: 'border-amber-400/30' },
+                            { title: 'THE PRAGMATIST', desc: 'Feasible / Real-World / Action', color: 'text-emerald-400', border: 'border-emerald-400/30' },
+                        ].map((member, i) => (
+                            <div key={i} className={`bg-cyber-black border-4 ${member.border} p-3 hover:bg-cyber-dim transition-colors cursor-default`}>
+                                <div className={`font-bold ${member.color} text-sm mb-1 tracking-wider`}>
+                                    // {member.title}
+                                </div>
+                                <div className="text-[10px] text-cyber-muted uppercase font-bold">
+                                    > {member.desc}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-
-                    {/* Skeptic */}
-                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
-                        <h4 className="font-bold text-orange-400 mb-1 group-hover:text-orange-300 transition-colors">The Skeptic</h4>
-                        <p className="text-sm text-gray-400">Critical, cautious, and risk-aware.</p>
-                    </div>
-
-                    {/* Pragmatist */}
-                    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 hover:bg-gray-800/50 transition-colors group">
-                        <h4 className="font-bold text-green-400 mb-1 group-hover:text-green-300 transition-colors">The Pragmatist</h4>
-                        <p className="text-sm text-gray-400">Practical, realistic, and solution-oriented.</p>
+                    
+                    {/* Bottom Status Line */}
+                    <div className="mt-8 pt-4 border-t-4 border-cyber-border/30 border-dashed flex justify-between text-[10px] text-cyber-muted uppercase tracking-widest font-bold">
+                         <span>>>>>> Human validation required for workflow change</span>
+                         <div className="flex gap-2">
+                             <span>00:01</span>
+                             <span>00:05</span>
+                             <span>00:09</span>
+                         </div>
                     </div>
                 </div>
              </div>
@@ -257,10 +324,15 @@ const App: React.FC = () => {
 
         {messages.map((msg) => (
           <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            
             {msg.role === 'user' ? (
-              <div className="max-w-2xl bg-indigo-600 text-white rounded-2xl rounded-tr-none px-6 py-4 shadow-lg">
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+              <div className="max-w-3xl relative group">
+                 <div className="absolute top-0 right-0 -mr-2 -mt-2 w-4 h-4 border-t-4 border-r-4 border-cyber-secondary"></div>
+                 <div className="bg-cyber-black border-4 border-cyber-secondary text-cyber-text px-6 py-4 shadow-[0_0_15px_rgba(74,222,128,0.1)]">
+                    <div className="text-[10px] text-cyber-secondary uppercase tracking-widest mb-2 border-b-2 border-cyber-secondary/30 pb-1 w-fit font-bold">
+                        > USER_INPUT_LOG
+                    </div>
+                    <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                 </div>
               </div>
             ) : (
               // Council Message Component
@@ -273,93 +345,94 @@ const App: React.FC = () => {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Area */}
-      <footer className="flex-none bg-gray-900 p-4 border-t border-gray-800">
-        <div className="max-w-4xl mx-auto">
+      {/* Input Terminal */}
+      <footer className="flex-none bg-cyber-black p-4 border-t-4 border-cyber-border z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <div className="max-w-5xl mx-auto space-y-2">
           
-          {/* Attachment Preview */}
+          {/* Attachment Tag */}
           {attachment && (
-            <div className="mb-2 bg-gray-800 border border-gray-700 rounded-lg p-2 flex items-center justify-between w-fit max-w-full">
-                <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="p-1.5 bg-gray-700 rounded text-gray-300">
-                        <Icon name={attachment.type === 'pdf' ? 'file-pdf' : 'file-text'} className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm text-gray-300 truncate max-w-[200px]">{attachment.name}</span>
-                </div>
-                <button 
-                    onClick={removeAttachment}
-                    className="ml-3 p-1 hover:bg-gray-700 rounded-full text-gray-400 hover:text-red-400 transition-colors"
-                >
-                    <Icon name="x" className="w-4 h-4" />
-                </button>
+            <div className="inline-flex items-center gap-2 bg-cyber-secondary/10 border-4 border-cyber-secondary text-cyber-secondary px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                <Icon name={attachment.type === 'pdf' ? 'file-pdf' : 'file-text'} className="w-4 h-4" />
+                <span>LOADED: {attachment.name}</span>
+                <button onClick={removeAttachment} className="ml-2 hover:text-white"><Icon name="x" className="w-3 h-3" /></button>
             </div>
           )}
 
-          <div className="relative flex items-center gap-2">
-            {/* File Input (Hidden) */}
+          <div className="relative flex items-center">
+            {/* Prompt Symbol */}
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyber-primary font-bold animate-pulse text-lg">
+                {'>'}
+            </div>
+
             <input 
                 type="file" 
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileSelect}
-                // Accepting common text formats and PDFs
                 accept=".txt,.md,.json,.csv,.js,.ts,.tsx,.html,.css,.xml,.pdf"
             />
             
-            <div className="relative flex-1">
-                {/* Attachment Button */}
+            <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                placeholder={isLoading ? "SYSTEM_PROCESSING..." : "ENTER_QUERY..."}
+                className="w-full bg-cyber-dark text-cyber-primary pl-10 pr-32 py-4 border-4 border-cyber-border focus:border-cyber-primary focus:shadow-[0_0_10px_rgba(74,222,128,0.3)] outline-none resize-none disabled:opacity-50 h-16 font-mono text-sm shadow-inner uppercase placeholder-cyber-muted/50 font-bold"
+            />
+            
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                
+                {/* File Upload */}
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-400 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Attach a text document or PDF"
+                    className="p-2 text-cyber-muted hover:text-cyber-primary hover:bg-cyber-dim border-2 border-transparent hover:border-cyber-border transition-all rounded-none"
+                    title="UPLOAD_DATA"
                 >
-                    <Icon name="paperclip" className="w-5 h-5" />
+                    <Icon name="paperclip" className="w-4 h-4" />
                 </button>
 
-                <textarea
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={isLoading}
-                    placeholder={isLoading ? "The Council is deliberating..." : "Present your query to the Council..."}
-                    className="w-full bg-gray-800 text-gray-100 rounded-xl pl-12 pr-12 py-4 shadow-inner border border-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    rows={1}
-                    style={{ minHeight: '60px' }}
-                />
-                
-                {/* Send Button */}
+                 {/* ELI5 Toggle */}
                 <button
-                    onClick={handleSendMessage}
-                    disabled={(!inputValue.trim() && !attachment) || isLoading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-white rounded-lg transition-colors"
+                    onClick={() => setIsEli5(!isEli5)}
+                    disabled={isLoading}
+                    className={`p-2 border-2 text-[10px] font-bold transition-all rounded-none ${
+                        isEli5 
+                        ? 'bg-fuchsia-900/30 border-fuchsia-500 text-fuchsia-400' 
+                        : 'bg-cyber-dark border-cyber-border text-cyber-muted hover:text-cyber-text'
+                    }`}
+                    title="SIMPLIFY_OUTPUT"
                 >
-                    <Icon name="send" className="w-5 h-5" />
+                    ELI5_MODE:{isEli5 ? 'ON' : 'OFF'}
                 </button>
-            </div>
 
-            {/* ELI5 Toggle Button */}
-            <button
-                onClick={() => setIsEli5(!isEli5)}
-                disabled={isLoading}
-                className={`flex-none p-3 rounded-xl border transition-all duration-200 ${
-                    isEli5 
-                    ? 'bg-pink-500/20 border-pink-500 text-pink-400' 
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
-                }`}
-                title="Explain Like I'm 5 (ELI5)"
-            >
-                <div className="flex items-center gap-2">
-                    <Icon name="balloon" className="w-5 h-5" />
-                    <span className="text-xs font-bold hidden sm:inline">ELI5</span>
-                </div>
-            </button>
+                {/* Action Button */}
+                {isLoading ? (
+                    <button
+                        onClick={handleStopGeneration}
+                        className="p-2 bg-red-900/20 border-2 border-red-500 text-red-500 hover:bg-red-900/40 transition-all rounded-none"
+                        title="ABORT"
+                    >
+                        <Icon name="square" className="w-4 h-4" />
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleSendMessage}
+                        disabled={!inputValue.trim() && !attachment}
+                        className="p-2 bg-cyber-primary/10 border-2 border-cyber-primary text-cyber-primary hover:bg-cyber-primary/20 hover:shadow-[0_0_10px_rgba(74,222,128,0.4)] transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-none"
+                        title="EXECUTE"
+                    >
+                        <Icon name="send" className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
           </div>
-        </div>
-        <div className="text-center mt-2">
-            <p className="text-xs text-gray-500">
-                Models Used: Gemini 2.5 Flash (Council) • Gemini 3.0 Pro (Chairman)
-            </p>
+          
+          <div className="flex justify-between text-[10px] text-cyber-muted uppercase font-bold">
+             <span>SYS_RAM: OK</span>
+             <span>MODELS: GEMINI_2.5_FLASH // GEMINI_3.0_PRO</span>
+          </div>
         </div>
       </footer>
     </div>

@@ -11,7 +11,7 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
     id: 'logic',
     name: 'The Analyst',
     style: 'Analytical, data-driven, and precise.',
-    color: 'text-blue-400',
+    color: 'text-lime-400', // Changed from Cyan to Lime for green theme
     model: 'gemini-2.5-flash',
     systemPrompt: 'You are The Analyst. Your goal is to provide a strictly logical, fact-based answer. Focus on structure, data, and correctness. Format your response cleanly using Markdown. Do not use emojis, decorative symbols, or non-standard punctuation.',
   },
@@ -19,7 +19,7 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
     id: 'creative',
     name: 'The Visionary',
     style: 'Creative, abstract, and out-of-the-box.',
-    color: 'text-purple-400',
+    color: 'text-fuchsia-400', // Bright Fuchsia for dark mode
     model: 'gemini-2.5-flash',
     systemPrompt: 'You are The Visionary. Your goal is to think laterally. Provide creative solutions, metaphors, and explore the "what if". Format your response cleanly using Markdown. Do not use emojis, decorative symbols, or non-standard punctuation. Avoid excessive fluff.',
   },
@@ -27,7 +27,7 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
     id: 'skeptic',
     name: 'The Skeptic',
     style: 'Critical, cautious, and risk-aware.',
-    color: 'text-orange-400',
+    color: 'text-amber-400', // Bright Amber for dark mode
     model: 'gemini-2.5-flash',
     systemPrompt: 'You are The Skeptic. Your goal is to find flaws, risks, and edge cases. Challenge assumptions. Play devil\'s advocate against the user\'s premise if necessary. Format your response cleanly using Markdown. Do not use emojis, decorative symbols, or non-standard punctuation.',
   },
@@ -35,7 +35,7 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
     id: 'pragmatist',
     name: 'The Pragmatist',
     style: 'Practical, realistic, and solution-oriented.',
-    color: 'text-green-400',
+    color: 'text-emerald-400', // Bright Emerald/Green for dark mode
     model: 'gemini-2.5-flash',
     systemPrompt: 'You are The Pragmatist. Your goal is to focus on feasibility, real-world implementation, and compromise. What actually works in practice? Avoid overly theoretical or idealistic solutions. Format your response cleanly using Markdown. Do not use emojis, decorative symbols, or non-standard punctuation.',
   }
@@ -47,7 +47,9 @@ const cleanText = (text: string | undefined): string => {
 };
 
 // Stage 1: Get Initial Opinions
-export const getInitialOpinions = async (prompt: string, attachmentPart?: any): Promise<Opinion[]> => {
+export const getInitialOpinions = async (prompt: string, attachmentPart?: any, signal?: AbortSignal): Promise<Opinion[]> => {
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  
   // If there is an attachment (like a PDF), we send a multi-part request.
   // Otherwise just the text prompt.
   const contents = attachmentPart 
@@ -55,6 +57,8 @@ export const getInitialOpinions = async (prompt: string, attachmentPart?: any): 
     : prompt;
 
   const promises = COUNCIL_MEMBERS.map(async (member) => {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    
     try {
       const response = await ai.models.generateContent({
         model: member.model,
@@ -68,6 +72,8 @@ export const getInitialOpinions = async (prompt: string, attachmentPart?: any): 
         content: cleanText(response.text),
       };
     } catch (error) {
+      if (signal?.aborted || (error as any).name === 'AbortError') throw error;
+      
       console.error(`Error fetching opinion from ${member.name}:`, error);
       return {
         memberId: member.id,
@@ -80,8 +86,12 @@ export const getInitialOpinions = async (prompt: string, attachmentPart?: any): 
 };
 
 // Stage 2: Get Peer Reviews
-export const getPeerReviews = async (prompt: string, opinions: Opinion[], attachmentPart?: any): Promise<Review[]> => {
+export const getPeerReviews = async (prompt: string, opinions: Opinion[], attachmentPart?: any, signal?: AbortSignal): Promise<Review[]> => {
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
   const promises = COUNCIL_MEMBERS.map(async (member) => {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
     try {
       // Construct a context where this member sees others' opinions but not who wrote them
       const otherOpinions = opinions
@@ -121,6 +131,8 @@ export const getPeerReviews = async (prompt: string, opinions: Opinion[], attach
         content: cleanText(response.text),
       };
     } catch (error) {
+       if (signal?.aborted || (error as any).name === 'AbortError') throw error;
+
       return {
         reviewerId: member.id,
         content: `[Error: Failed to retrieve review from ${member.name}]`,
@@ -137,8 +149,11 @@ export const getChairmanRuling = async (
   opinions: Opinion[],
   reviews: Review[],
   attachmentPart?: any,
-  isEli5: boolean = false
+  isEli5: boolean = false,
+  signal?: AbortSignal
 ): Promise<string> => {
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
   try {
     const formattedOpinions = opinions.map(o => {
       const member = COUNCIL_MEMBERS.find(m => m.id === o.memberId);
@@ -191,6 +206,8 @@ export const getChairmanRuling = async (
     return cleanText(response.text);
 
   } catch (error) {
+    if (signal?.aborted || (error as any).name === 'AbortError') throw error;
+    
     console.error("Chairman error:", error);
     return "The Chairman has resigned due to an unexpected error. Please try again.";
   }

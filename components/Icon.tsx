@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  name: 'user' | 'bot' | 'check' | 'clock' | 'chevron-down' | 'chevron-up' | 'send' | 'sparkles' | 'alert' | 'paperclip' | 'x' | 'file-text' | 'file-pdf' | 'balloon';
+  name: 'user' | 'bot' | 'check' | 'clock' | 'chevron-down' | 'chevron-up' | 'send' | 'sparkles' | 'alert' | 'paperclip' | 'x' | 'file-text' | 'file-pdf' | 'balloon' | 'square';
   className?: string;
 }
 
@@ -106,6 +106,12 @@ export const Icon: React.FC<IconProps> = ({ name, className = "w-5 h-5" }) => {
                 <path d="M6 9a6 6 0 1 1 12 0c0 2.5 -2 5 -6 6l-1 1l-2 4.5" />
                 <path d="M12 2v3" />
                 <path d="M10 17h4" />
+            </svg>
+        );
+    case 'square':
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <rect x="5" y="5" width="14" height="14" rx="2" ry="2" />
             </svg>
         );
     default:
