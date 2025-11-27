@@ -1,0 +1,5 @@
+{
+  "name": "LLM Council",
+  "description": "A sophisticated chat interface where a council of AI personas debates your query before a Chairman delivers the final synthesized verdict.",
+  "requestFramePermissions": []
+}
