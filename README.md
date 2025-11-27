@@ -15,9 +15,7 @@ In a bit more detail, here is what happens when you submit a query:
 
 **Stage 3: Final response.** The designated Chairman takes all of the responses and reviews and compiles them into a single final answer that is presented to the user.
 
-## Vibe Code Alert
-
-This project was 99% vibe coded as a fun hack because I wanted to explore multi-agent reasoning. It's nice and useful to see multiple responses side by side, and also the cross-opinions of all members on each other's outputs. It's provided here as is for other people's inspiration. Code is ephemeral now, ask your LLM to change it in whatever way you like.
+It's nice and useful to see multiple responses side by side, and also the cross-opinions of all members on each other's outputs. It's provided here as is for other people's inspiration. Code is ephemeral now, ask your LLM to change it in whatever way you like.
 
 ## Setup
 
