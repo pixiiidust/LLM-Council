@@ -1,7 +1,8 @@
 # LLM Council
 
 <div align="center">
-<img width="820" alt="image" src="https://github.com/user-attachments/assets/0dd7cdd0-fb3e-49c1-ae65-bd94ba9dedb7" />
+<img width="1149" height="866" alt="image" src="https://github.com/user-attachments/assets/32f810d7-8868-4502-b102-3965bcb7f07a" />
+
 </div>
 
 The idea of this project is that instead of asking a question to a single LLM, you can group them into your "LLM Council". This is a simple web app that sends your query to specialized Gemini personas, asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
