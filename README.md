@@ -1,12 +1,12 @@
 # LLM Council
-
-<div align="center">
-<img width="1149" height="866" alt="image" src="https://github.com/user-attachments/assets/32f810d7-8868-4502-b102-3965bcb7f07a" />
-
-</div>
-
 The idea of this project is that instead of asking a question to a single LLM, you can group them into your "LLM Council". This is a simple web app that sends your query to specialized Gemini personas, asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
 
+# Screenshot
+<div align="center">
+<img width="1149" height="866" alt="image" src="https://github.com/user-attachments/assets/32f810d7-8868-4502-b102-3965bcb7f07a" />
+</div>
+
+# How it works
 In a bit more detail, here is what happens when you submit a query:
 
 **Stage 1: First opinions.** The user query is given to all Council Members (Analyst, Visionary, Skeptic, Pragmatist) individually. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
