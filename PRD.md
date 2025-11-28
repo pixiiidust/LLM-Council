@@ -1,9 +1,11 @@
 # Product Requirements Document: LLM Council
 
+### Author: System Architect
+
 **Version:** 1.0  
 **Status:** Live
 **Date:** July 26, 2025  
-**Author:** System Architect
+
 
 ---
 
