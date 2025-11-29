@@ -61,6 +61,8 @@ The application must execute three sequential stages upon submission:
 *   **Tabular Views:** Users can inspect individual member outputs and peer reviews before seeing the final verdict.
 *   **Abort Functionality:** Ability to halt the generation process mid-stream.
 *   **Markdown Rendering:** All AI outputs must support rich text formatting (code blocks, bolding, lists).
+*   **Full Screen Mode:** A persistent header button allowing users to toggle full-screen immersion on tablet and mobile devices.
+*   **Persistent Input Terminal:** The bottom input bar remains persistently visible (sticky), ensuring immediate access to query input regardless of chat history length or scrolling.
 
 ---
 

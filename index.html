@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>LLM Council // LAB INTERFACE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,6 +41,7 @@
         background-color: #020502;
         color: #4ade80;
         font-family: 'Share Tech Mono', monospace;
+        height: 100dvh; /* Use dynamic viewport height for mobile browsers */
       }
 
       /* Custom scrollbar */
@@ -139,7 +140,7 @@
 }
 </script>
 </head>
-  <body class="bg-cyber-black text-cyber-primary font-mono antialiased h-screen overflow-hidden selection:bg-cyber-primary selection:text-black">
+  <body class="bg-cyber-black text-cyber-primary font-mono antialiased overflow-hidden selection:bg-cyber-primary selection:text-black">
     <div class="scanlines"></div>
     <div class="crt-flicker"></div>
     <div id="root" class="h-full flex flex-col relative z-10"></div>

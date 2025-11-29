@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [attachment, setAttachment] = useState<{ name: string; content: string; type: 'text' | 'pdf' } | null>(null);
   const [isEli5, setIsEli5] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -21,6 +22,43 @@ const App: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Listen for Full Screen changes (e.g. user pressing ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      const docEl = document.documentElement as any;
+      const requestFullScreen = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (requestFullScreen) {
+          requestFullScreen.call(docEl).catch((err: any) => {
+              console.warn("Full screen request failed", err);
+          });
+      }
+    } else {
+      const doc = document as any;
+      const exitFullScreen = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+      if (exitFullScreen) {
+        exitFullScreen.call(doc);
+      }
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -210,11 +248,11 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-cyber-black text-cyber-primary font-mono relative overflow-hidden bg-grid-pattern bg-[length:40px_40px]">
       
-      {/* Top Protocol Header */}
-      <header className="flex-none h-20 border-b-4 border-cyber-border bg-cyber-black flex items-center justify-between px-6 z-20 select-none shadow-[0_5px_20px_rgba(0,0,0,0.5)]">
+      {/* Top Protocol Header - Persistent and Sticky */}
+      <header className="flex-none h-20 border-b-4 border-cyber-border bg-cyber-black flex items-center justify-between px-4 sm:px-6 z-30 select-none shadow-[0_5px_20px_rgba(0,0,0,0.5)] sticky top-0">
         <div className="flex items-center gap-6">
              <div className="flex flex-col">
-                 <div className="text-4xl font-bold tracking-tighter text-cyber-primary text-glow leading-none">
+                 <div className="text-3xl sm:text-4xl font-bold tracking-tighter text-cyber-primary text-glow leading-none">
                     AI SYSTEMS REPORT
                  </div>
                  <div className="flex items-center gap-2 mt-1">
@@ -225,15 +263,28 @@ const App: React.FC = () => {
                  </div>
              </div>
         </div>
-        <div className="hidden sm:flex items-center">
-            <div className="bg-cyber-primary text-cyber-black px-4 py-2 font-bold text-2xl tracking-tighter border-4 border-transparent">
-                +14%
-                <span className="block text-[10px] leading-none tracking-normal font-normal">EFFICIENCY GAIN</span>
+        
+        <div className="flex items-center gap-4">
+            {/* Hidden Analytics for Mobile */}
+            <div className="hidden md:flex items-center">
+                <div className="bg-cyber-primary text-cyber-black px-4 py-2 font-bold text-2xl tracking-tighter border-4 border-transparent">
+                    +14%
+                    <span className="block text-[10px] leading-none tracking-normal font-normal">EFFICIENCY GAIN</span>
+                </div>
+                <div className="ml-4 flex flex-col items-end text-[10px] text-cyber-muted tracking-widest gap-1 font-bold">
+                    <span>PROGRAM : AUXON // ANALYTICS_MODE</span>
+                    <span className="text-cyber-secondary">> DATASETS INGESTED : 7,428</span>
+                </div>
             </div>
-            <div className="ml-4 flex flex-col items-end text-[10px] text-cyber-muted tracking-widest gap-1 font-bold">
-                <span>PROGRAM : AUXON // ANALYTICS_MODE</span>
-                <span className="text-cyber-secondary">> DATASETS INGESTED : 7,428</span>
-            </div>
+
+            {/* Full Screen Toggle (Visible on Mobile) */}
+            <button 
+                onClick={toggleFullScreen}
+                className="p-3 border-4 border-cyber-border hover:bg-cyber-dim hover:border-cyber-primary text-cyber-primary transition-all active:scale-95"
+                title={isFullscreen ? "EXIT_FULL_SCREEN" : "FULL_SCREEN_MODE"}
+            >
+                <Icon name={isFullscreen ? 'minimize' : 'maximize'} className="w-6 h-6" />
+            </button>
         </div>
       </header>
 
@@ -241,7 +292,9 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 scroll-smooth relative">
         
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center p-4">
+          // Adjusted container: Use min-h-full to ensure it fills screen but grows if content overflows.
+          // Removed forced justify-center on mobile to prevent clipping at top. Added py-12 for safe spacing.
+          <div className="min-h-full flex flex-col items-center py-12 md:justify-center p-4">
              <div className="max-w-4xl w-full border-4 border-cyber-border p-1 relative bg-cyber-black/90 shadow-[0_0_30px_rgba(74,222,128,0.1)] backdrop-blur-sm">
                 
                 {/* Decorative corners */}
@@ -261,7 +314,7 @@ const App: React.FC = () => {
                                 COUNCIL_OF_5
                              </h2>
                              <p className="text-cyber-muted text-sm leading-relaxed border-l-4 border-cyber-primary pl-4 font-bold">
-                                > Autonomous multi-agent deliberation protocols active.<br/>
+                                > Autonomous multi-agent deliberation protocols engaged.<br/>
                                 > Synthesis engine ready to process complex queries through adversarial review.
                              </p>
                         </div>
@@ -310,7 +363,7 @@ const App: React.FC = () => {
                     
                     {/* Bottom Status Line */}
                     <div className="mt-8 pt-4 border-t-4 border-cyber-border/30 border-dashed flex justify-between text-[10px] text-cyber-muted uppercase tracking-widest font-bold">
-                         <span>>>>>> Human validation required for workflow change</span>
+                         <span>>>>>> Add text files if required to augment your query.</span>
                          <div className="flex gap-2">
                              <span>00:01</span>
                              <span>00:05</span>
@@ -345,8 +398,8 @@ const App: React.FC = () => {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Terminal */}
-      <footer className="flex-none bg-cyber-black p-4 border-t-4 border-cyber-border z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+      {/* Input Terminal - Persistent and Sticky */}
+      <footer className="flex-none bg-cyber-black p-4 border-t-4 border-cyber-border z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] sticky bottom-0">
         <div className="max-w-5xl mx-auto space-y-2">
           
           {/* Attachment Tag */}
